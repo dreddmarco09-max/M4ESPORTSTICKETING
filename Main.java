@@ -249,8 +249,136 @@ public class Main {
     }
 
     //Featured 2.1 rendermap
+    private static void renderMap() {
+    try {
+        System.out.print("\n  View [A] VIP, [B] Lower, [C] Upper, or [ALL]: ");
+        String filter = sc.nextLine().toUpperCase().trim();
+
+        if (filter.isEmpty()) {
+            System.out.println(RED + "  Input Error: Filter cannot be empty. Enter A, B, C, or ALL." + RESET);
+            return;
+        }
+        if (!filter.equals("A") && !filter.equals("B") && !filter.equals("C") && !filter.equals("ALL")) {
+            System.out.println(RED + "  Input Error: \"" + filter + "\" is not valid. Enter A, B, C, or ALL." + RESET);
+            return;
+        }
+
+        System.out.println(CYAN + "\n      ╔══════════════════════════════════════╗");
+        System.out.println(       "      ║       [  ESPORTS ARENA STAGE  ]       ║");
+        System.out.println(       "      ╚══════════════════════════════════════╝" + RESET);
+
+        if (filter.equals("A"))   System.out.println(BOLD + "  [ ROW A — VIP SECTION ]"  + RESET);
+        if (filter.equals("B"))   System.out.println(BOLD + "  [ ROW B — LOWER BOX ]"    + RESET);
+        if (filter.equals("C"))   System.out.println(BOLD + "  [ ROW C — UPPER BOX ]"    + RESET);
+        if (filter.equals("ALL")) System.out.println(BOLD + "  [ FULL ARENA VIEW ]"       + RESET);
+
+        System.out.println();
+
+        List<SeatHierarchy> map = repo.getLiveInventory();
+
+        if (map == null || map.isEmpty()) {
+            System.out.println(ORANGE + "  No seat data available. Check database connection." + RESET);
+            return;
+        }
+
+        int count = 0;
+        for (SeatHierarchy s : map) {
+            try {
+                if (filter.equals("ALL") || s.getId().trim().startsWith(filter)) {
+                    String status = s.getStatus().trim();
+                    String color  = status.equalsIgnoreCase("Available") ? GREEN
+                                  : status.equalsIgnoreCase("Reserved")  ? ORANGE
+                                  : GRAY;
+                    System.out.print("  " + color + "[" + s.getId().trim() + "]" + RESET);
+                    count++;
+                    if (filter.equals("ALL") && count % 6 == 0) System.out.println();
+                }
+            } catch (Exception rowEx) {
+                System.err.println("  Warning: Skipped a seat render. " + rowEx.getMessage());
+            }
+        }
+
+        System.out.println("\n");
+        System.out.println("  Legend: "
+                + GREEN  + "■ Available"              + RESET + "  "
+                + ORANGE + "■ Reserved (15-min lock)" + RESET + "  "
+                + GRAY   + "■ Sold"                   + RESET);
+        System.out.println();
+
+    } catch (NoSuchElementException e) {
+        System.out.println(RED + "  Input Error: No input detected." + RESET);
+    } catch (Exception e) {
+        System.out.println(RED + "  Error loading map: " + e.getMessage() + RESET);
+    }
+}
+
     //Featured 1.1 HandleBooking
     //Feature 1.2 ->
+private static void handlePayment() {
+
+    try {
+        List<SeatHierarchy> inventory = repo.getLiveInventory();
+
+        if (inventory == null) {
+            System.out.println(RED + "  Error: Could not retrieve seat inventory." + RESET);
+            return;
+        }
+
+        String reservedSeat = null;
+        for (SeatHierarchy s : inventory) {
+            try {
+                if (s.getCustomerId() != null
+                        && s.getCustomerId().trim().equalsIgnoreCase(currentSessionUser)
+                        && s.getStatus().trim().equalsIgnoreCase("Reserved")) {
+                    reservedSeat = s.getId().trim();
+                    break;
+                }
+            } catch (Exception checkEx) {
+                System.err.println("  Warning: Error scanning reservations. " + checkEx.getMessage());
+            }
+        }
+
+        if (reservedSeat == null) {
+            System.out.println(ORANGE + "\n  No active reservation found for " + currentSessionName + "." + RESET);
+            System.out.println("  Reserve a seat first using option [2].");
+            return;
+        }
+
+        System.out.println(CYAN + "\n  Your reserved seat: " + BOLD + reservedSeat + RESET);
+        System.out.print("  Confirm payment for Seat " + reservedSeat + "? [Y/N]: ");
+        String confirm = sc.nextLine().trim().toUpperCase();
+
+        if (confirm.isEmpty()) {
+            System.out.println(RED + "  Input Error: Please enter Y or N." + RESET);
+            return;
+        }
+        if (!confirm.equals("Y") && !confirm.equals("N")) {
+            System.out.println(RED + "  Input Error: \"" + confirm + "\" is not valid. Enter Y or N." + RESET);
+            return;
+        }
+        if (confirm.equals("N")) {
+            System.out.println(ORANGE + "  Payment cancelled." + RESET);
+            return;
+        }
+
+        if (repo.processPayment(reservedSeat, currentSessionUser)) {
+            System.out.println(GREEN + "\n  ✔ Payment confirmed! Receipt generated." + RESET);
+        } else {
+            System.out.println(RED + "\n  ✘ Payment failed. Reservation may have expired." + RESET);
+        }
+
+    } catch (NoSuchElementException e) {
+        System.out.println(RED + "  Input Error: No input detected." + RESET);
+    } catch (Exception e) {
+        System.out.println(RED + "  Error during payment: " + e.getMessage() + RESET);
+    }
+}
+
+
+
+
+
+
     //Featured 1.3 DB
 
     private static void filterTickets() {
@@ -335,3 +463,6 @@ public class Main {
         }
     }
 }
+
+
+
