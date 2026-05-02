@@ -248,10 +248,234 @@ public class Main {
         }
     }
 
-    //Featured 2.1 rendermap
-    //Featured 1.1 HandleBooking
-    //Feature 1.2 ->
-    //Featured 1.3 DB
+    private static void showDashboard() {
+    try {
+        System.out.println(CYAN + "\n  ╔══════════════════════════════════════╗");
+        System.out.println(       "  ║        MY TICKETS DASHBOARD          ║");
+        System.out.println(       "  ╠══════════════════════════════════════╣" + RESET);
+        System.out.println("  Name  : " + BOLD + currentSessionName + RESET);
+        System.out.println("  UserID: " + currentSessionUser);
+        System.out.println(CYAN + "  ──────────────────────────────────────" + RESET);
+
+        List<SeatHierarchy> allSeats = repo.getLiveInventory();
+
+        if (allSeats == null || allSeats.isEmpty()) {
+            System.out.println("  No seat data available.");
+            System.out.println(CYAN + "  ╚══════════════════════════════════════╝" + RESET);
+            return;
+        }
+
+        boolean found          = false;
+        double  totalPaid      = 0;
+        int     confirmedCount = 0;
+        int     pendingCount   = 0;
+
+        for (SeatHierarchy s : allSeats) {
+            try {
+                if (s.getCustomerId() != null
+                        && s.getCustomerId().trim().equalsIgnoreCase(currentSessionUser)) {
+
+                    String status = s.getStatus().trim();
+                    String type   = (s instanceof VIPSeat) ? "[VIP]" : "[Regular]";
+
+                    if (status.equalsIgnoreCase("Reserved")) {
+                        System.out.println("  Seat " + BOLD + s.getId() + RESET
+                                + "  " + CYAN + type + RESET
+                                + "  Status: " + ORANGE + "PENDING" + RESET);
+                        pendingCount++;
+                    } else if (status.equalsIgnoreCase("Sold")) {
+                        System.out.println("  Seat " + BOLD + s.getId() + RESET
+                                + "  " + CYAN + type + RESET
+                                + "  Status: " + GREEN + "CONFIRMED" + RESET
+                                + "  Price: P" + s.getPrice());
+                        totalPaid += s.getPrice();
+                        confirmedCount++;
+                    }
+                    found = true;
+                }
+            } catch (Exception rowEx) {
+                System.err.println("  Warning: Error displaying a ticket row. " + rowEx.getMessage());
+
+                            }
+        }
+
+        if (!found) {
+            System.out.println("  No tickets associated with this account.");
+        } else {
+            System.out.println(CYAN + "  ──────────────────────────────────────" + RESET);
+            System.out.println("  Confirmed : " + GREEN  + confirmedCount + RESET);
+            System.out.println("  Pending   : " + ORANGE + pendingCount   + RESET);
+            System.out.println("  Total Paid: " + GREEN  + BOLD + "P" + totalPaid + RESET);
+        }
+
+        System.out.println(CYAN + "  ╚══════════════════════════════════════╝" + RESET);
+     
+    } catch (Exception e) {
+        System.out.println(RED + "  Error loading dashboard: " + e.getMessage() + RESET);
+    }
+}
+
+    public List<SeatHierarchy> getLiveInventory() {
+    List<SeatHierarchy> seats = new ArrayList<>();
+
+    String releaseSql =
+        "UPDATE Seats SET Status = 'Available', CustomerID = NULL, LockTimestamp = NULL " +
+        "WHERE Status = 'Reserved' AND DATEDIFF(minute, LockTimestamp, GETDATE()) >= 15";
+
+    try (Connection conn = DriverManager.getConnection(url)) {
+
+        // Auto-release expired 15-min locks
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(releaseSql);
+        } catch (SQLException e) {
+            System.err.println("  Warning: Could not auto-release expired seats. " + e.getMessage());
+        }
+
+        // Fetch all seats
+        String query = "SELECT SeatID, Price, Status, Tier, CustomerID FROM Seats ORDER BY SeatID ASC";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            while (rs.next()) {
+                try {
+                    String id     = rs.getString("SeatID");
+                    double price  = rs.getDouble("Price");
+                    String status = rs.getString("Status");
+                    String tier   = rs.getString("Tier");
+                    String cust   = rs.getString("CustomerID");
+
+                    if (tier != null && tier.trim().equalsIgnoreCase("VIP")) {
+                        seats.add(new VIPSeat(id, price, status, cust));
+                    } else {
+                        seats.add(new RegularSeat(id, price, status, cust));
+                    }
+                    } catch (SQLException rowEx) {
+                    System.err.println("  Warning: Skipped a malformed seat row. " + rowEx.getMessage());
+                }
+            }
+        }
+
+    } catch (SQLException e) {
+        System.err.println("  Database Sync Error: " + e.getMessage());
+        System.out.println("  Could not connect to database. Returning empty inventory.");
+    } catch (Exception e) {
+        System.err.println("  Unexpected Error in getLiveInventory: " + e.getMessage());
+    }
+
+    return seats;
+}
+
+
+     private static void handleBooking() {
+    try {
+        List<SeatHierarchy> inventory = repo.getLiveInventory();
+
+        if (inventory == null) {
+            System.out.println(RED + "  Error: Could not retrieve seat inventory." + RESET);
+            return;
+        }
+
+        // Enforce single active reservation
+        for (SeatHierarchy s : inventory) {
+            try {
+                if (s.getCustomerId() != null
+                        && s.getCustomerId().trim().equalsIgnoreCase(currentSessionUser)
+                        && s.getStatus().trim().equalsIgnoreCase("Reserved")) {
+                    System.out.println(RED + "\n  Limit Reached: You already have a pending reservation for Seat "
+                            + s.getId().trim() + "." + RESET);
+                    System.out.println(ORANGE + "  Complete payment before booking another seat." + RESET);
+                    return;
+                }
+            } catch (Exception checkEx) {
+                System.err.println("  Warning: Error checking reservation. " + checkEx.getMessage());
+            }
+        }
+
+        renderMap();
+
+        System.out.print("  Enter Seat ID to Reserve (e.g., A1, B3): ");
+        String id = sc.nextLine().trim().toUpperCase();
+
+        if (id.isEmpty()) {
+            System.out.println(RED + "  Input Error: Seat ID cannot be empty." + RESET);
+            return;
+        }
+        if (!id.matches("[A-Z][0-9]+")) {
+            System.out.println(RED + "  Input Error: \"" + id + "\" is not valid. Use format like A1, B2, C3." + RESET);
+            return;
+        }
+
+        if (repo.bookSeat(id, currentSessionUser)) {
+            System.out.println(GREEN + "\n  ✔ Success: Seat " + id + " reserved for 15 minutes." + RESET);
+            System.out.println(ORANGE + "  ⚠ Complete payment within 15 mins or the seat will be released." + RESET);
+        } else {
+            System.out.println(RED + "\n   Error: Seat " + id + " is taken, invalid, or already sold." + RESET);
+        }
+
+    } catch (NoSuchElementException e) {
+        System.out.println(RED + "  Input Error: No input detected." + RESET);
+    } catch (Exception e) {
+        System.out.println(RED + "  Error during booking: " + e.getMessage() + RESET);
+    }
+}
+
+
+    private static void showDashboard() {
+    try {
+        System.out.println(CYAN + "\n  ╔══════════════════════════════════════╗");
+        System.out.println(       "  ║        MY TICKETS DASHBOARD          ║");
+        System.out.println(       "  ╠══════════════════════════════════════╣" + RESET);
+        System.out.println("  Name  : " + BOLD + currentSessionName + RESET);
+        System.out.println("  UserID: " + currentSessionUser);
+        System.out.println(CYAN + "  ──────────────────────────────────────" + RESET);
+
+        List<SeatHierarchy> allSeats = repo.getLiveInventory();
+
+        if (allSeats == null || allSeats.isEmpty()) {
+            System.out.println("  No seat data available.");
+            System.out.println(CYAN + "  ╚══════════════════════════════════════╝" + RESET);
+            return;
+        }
+
+        boolean found          = false;
+        double  totalPaid      = 0;
+        int     confirmedCount = 0;
+        int     pendingCount   = 0;
+
+        for (SeatHierarchy s : allSeats) {
+            try {
+                if (s.getCustomerId() != null
+                        && s.getCustomerId().trim().equalsIgnoreCase(currentSessionUser)) {
+
+                    String status = s.getStatus().trim();
+                    String type   = (s instanceof VIPSeat) ? "[VIP]" : "[Regular]";
+
+                    if (status.equalsIgnoreCase("Reserved")) {
+                        System.out.println("  Seat " + BOLD + s.getId() + RESET
+                                + "  " + CYAN + type + RESET
+                                + "  Status: " + ORANGE + "PENDING" + RESET);
+                        pendingCount++;
+                    } else if (status.equalsIgnoreCase("Sold")) {
+                        System.out.println("  Seat " + BOLD + s.getId() + RESET
+                                + "  " + CYAN + type + RESET
+                                + "  Status: " + GREEN + "CONFIRMED" + RESET
+                                + "  Price: P" + s.getPrice());
+                        totalPaid += s.getPrice();
+                        confirmedCount++;
+                    }
+                    found = true;
+                }
+            } catch (Exception rowEx) {
+                System.err.println("  Warning: Error displaying a ticket row. " + rowEx.getMessage());
+
+            System.err.println("  Unexpected Booking Error: " + e.getMessage());
+        return false;
+    }
+}
+
+
+
+
 
     private static void filterTickets() {
         try {
