@@ -2,6 +2,7 @@ import java.util.*;
 
 public class Main {
     
+    
     private static final RealTimeRepository repo = new RealTimeRepository();
     private static final Scanner sc = new Scanner(System.in);
 
@@ -62,8 +63,14 @@ public class Main {
     }
 
     private static void customerLoginFlow() {
+
+
         while (currentSessionUser == null) {
+
+
             try {
+
+
                 System.out.println(CYAN + "\n  ╔══════════════════════════════════════╗");
                 System.out.println(       "  ║         CUSTOMER CHECK-IN            ║");
                 System.out.println(       "  ╚══════════════════════════════════════╝" + RESET);
@@ -95,18 +102,28 @@ public class Main {
                 }
 
             } catch (NoSuchElementException e) {
+
+
                 System.out.println(RED + "  Input Error: No input detected." + RESET);
+
+
             } catch (Exception e) {
+
+
                 System.out.println(RED + "  Unexpected Error during login: " + e.getMessage() + RESET);
             }
         }
     }
 
     private static void returningCustomerLogin() {
+
+
         try {
             System.out.println(CYAN + "\n  [ Returning Customer Login ]" + RESET);
             System.out.print("  Enter your ID Number: ");
             String idNumber = sc.nextLine().trim();
+
+
 
             if (idNumber.isEmpty()) {
                 System.out.println(RED + "  Input Error: ID Number cannot be empty." + RESET);
@@ -114,6 +131,7 @@ public class Main {
             }
 
             String customerId = repo.findCustomerByIDNumber(idNumber);
+
 
             if (customerId == null) {
                 System.out.println(ORANGE + "  No account found with ID Number: " + idNumber + RESET);
@@ -135,6 +153,8 @@ public class Main {
         }
     }
 
+
+
     private static void newCustomerRegister() {
         try {
             System.out.println(CYAN + "\n  [ New Customer Registration ]" + RESET);
@@ -147,6 +167,7 @@ public class Main {
                 return;
             }
 
+
             if (!fullName.matches("[a-zA-Z]+(\\s+[a-zA-Z]+)+")) {
                 System.out.println(RED + "  Input Error: \"" + fullName + "\" is not valid. Enter your full name (letters only, e.g. Marco Dredd)." + RESET);
                 return;
@@ -155,15 +176,18 @@ public class Main {
             System.out.print("  Enter your ID Number (e.g. 2023-00123): ");
             String idNumber = sc.nextLine().trim();
 
+
             if (idNumber.isEmpty()) {
                 System.out.println(RED + "  Input Error: ID Number cannot be empty." + RESET);
                 return;
             }
 
+
             if (!idNumber.matches("[a-zA-Z0-9\\-]+")) {
                 System.out.println(RED + "  Input Error: \"" + idNumber + "\" is not valid. Use letters, numbers, and dashes only." + RESET);
                 return;
             }
+
 
             System.out.println(CYAN + "\n  ─── Confirm Registration ───────────────" + RESET);
             System.out.println("  Full Name  : " + fullName);
@@ -183,6 +207,7 @@ public class Main {
 
             String customerId = repo.registerCustomer(fullName, idNumber);
 
+
             if (customerId != null) {
                 currentSessionUser = customerId;
                 currentSessionName = fullName;
@@ -193,6 +218,7 @@ public class Main {
                 System.out.println(RED + "  Registration failed. Please try again or use a different ID Number." + RESET);
             }
 
+
         } catch (NoSuchElementException e) {
             System.out.println(RED + "  Input Error: No input detected." + RESET);
         } catch (Exception e) {
@@ -200,7 +226,10 @@ public class Main {
         }
     }
 
+
     private static String formatNameFromId(String customerId) {
+
+
         try {
             String[] parts = customerId.split("-");
             if (parts.length < 2) return customerId;
@@ -213,6 +242,8 @@ public class Main {
     }
 
     private static void printBanner() {
+  
+  
         try {
             System.out.println(CYAN + BOLD);
             System.out.println("  ███████╗███████╗██████╗  ██████╗ ██████╗ ████████╗███████╗");
@@ -229,6 +260,8 @@ public class Main {
     }
 
     private static void printMenu() {
+  
+  
         try {
             System.out.println(CYAN + "\n  ╔══════════════════════════════════════╗");
             System.out.println(       "  ║       ESPORTS TICKETING SYSTEM       ║");
@@ -243,15 +276,380 @@ public class Main {
             System.out.println("  [6] " + RED    + "Exit"                  + RESET);
             System.out.println(CYAN + "  ╚══════════════════════════════════════╝" + RESET);
             System.out.print("  Action: ");
+  
+  
         } catch (Exception e) {
             System.out.print("\nChoose [1-6]: ");
         }
     }
 
+<<<<<<< HEAD
+    private static void showDashboard() {
+    try {
+        System.out.println(CYAN + "\n  ╔══════════════════════════════════════╗");
+        System.out.println(       "  ║        MY TICKETS DASHBOARD          ║");
+        System.out.println(       "  ╠══════════════════════════════════════╣" + RESET);
+        System.out.println("  Name  : " + BOLD + currentSessionName + RESET);
+        System.out.println("  UserID: " + currentSessionUser);
+        System.out.println(CYAN + "  ──────────────────────────────────────" + RESET);
+
+        List<SeatHierarchy> allSeats = repo.getLiveInventory();
+
+        if (allSeats == null || allSeats.isEmpty()) {
+            System.out.println("  No seat data available.");
+            System.out.println(CYAN + "  ╚══════════════════════════════════════╝" + RESET);
+            return;
+        }
+
+        boolean found          = false;
+        double  totalPaid      = 0;
+        int     confirmedCount = 0;
+        int     pendingCount   = 0;
+
+        for (SeatHierarchy s : allSeats) {
+            try {
+                if (s.getCustomerId() != null
+                        && s.getCustomerId().trim().equalsIgnoreCase(currentSessionUser)) {
+
+                    String status = s.getStatus().trim();
+                    String type   = (s instanceof VIPSeat) ? "[VIP]" : "[Regular]";
+
+                    if (status.equalsIgnoreCase("Reserved")) {
+                        System.out.println("  Seat " + BOLD + s.getId() + RESET
+                                + "  " + CYAN + type + RESET
+                                + "  Status: " + ORANGE + "PENDING" + RESET);
+                        pendingCount++;
+                    } else if (status.equalsIgnoreCase("Sold")) {
+                        System.out.println("  Seat " + BOLD + s.getId() + RESET
+                                + "  " + CYAN + type + RESET
+                                + "  Status: " + GREEN + "CONFIRMED" + RESET
+                                + "  Price: P" + s.getPrice());
+                        totalPaid += s.getPrice();
+                        confirmedCount++;
+                    }
+                    found = true;
+                }
+            } catch (Exception rowEx) {
+                System.err.println("  Warning: Error displaying a ticket row. " + rowEx.getMessage());
+
+                            }
+        }
+
+        if (!found) {
+            System.out.println("  No tickets associated with this account.");
+        } else {
+            System.out.println(CYAN + "  ──────────────────────────────────────" + RESET);
+            System.out.println("  Confirmed : " + GREEN  + confirmedCount + RESET);
+            System.out.println("  Pending   : " + ORANGE + pendingCount   + RESET);
+            System.out.println("  Total Paid: " + GREEN  + BOLD + "P" + totalPaid + RESET);
+        }
+
+        System.out.println(CYAN + "  ╚══════════════════════════════════════╝" + RESET);
+     
+    } catch (Exception e) {
+        System.out.println(RED + "  Error loading dashboard: " + e.getMessage() + RESET);
+    }
+}
+
+    public List<SeatHierarchy> getLiveInventory() {
+    List<SeatHierarchy> seats = new ArrayList<>();
+
+    String releaseSql =
+        "UPDATE Seats SET Status = 'Available', CustomerID = NULL, LockTimestamp = NULL " +
+        "WHERE Status = 'Reserved' AND DATEDIFF(minute, LockTimestamp, GETDATE()) >= 15";
+
+    try (Connection conn = DriverManager.getConnection(url)) {
+
+        // Auto-release expired 15-min locks
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(releaseSql);
+        } catch (SQLException e) {
+            System.err.println("  Warning: Could not auto-release expired seats. " + e.getMessage());
+        }
+
+        // Fetch all seats
+        String query = "SELECT SeatID, Price, Status, Tier, CustomerID FROM Seats ORDER BY SeatID ASC";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            while (rs.next()) {
+                try {
+                    String id     = rs.getString("SeatID");
+                    double price  = rs.getDouble("Price");
+                    String status = rs.getString("Status");
+                    String tier   = rs.getString("Tier");
+                    String cust   = rs.getString("CustomerID");
+
+                    if (tier != null && tier.trim().equalsIgnoreCase("VIP")) {
+                        seats.add(new VIPSeat(id, price, status, cust));
+                    } else {
+                        seats.add(new RegularSeat(id, price, status, cust));
+                    }
+                    } catch (SQLException rowEx) {
+                    System.err.println("  Warning: Skipped a malformed seat row. " + rowEx.getMessage());
+                }
+            }
+        }
+
+    } catch (SQLException e) {
+        System.err.println("  Database Sync Error: " + e.getMessage());
+        System.out.println("  Could not connect to database. Returning empty inventory.");
+    } catch (Exception e) {
+        System.err.println("  Unexpected Error in getLiveInventory: " + e.getMessage());
+    }
+
+    return seats;
+}
+
+
+     private static void handleBooking() {
+=======
+
     //Featured 2.1 rendermap
+
+
+
+    private static void renderMap() {
+  
+  
+    try {
+        System.out.print("\n  View [A] VIP, [B] Lower, [C] Upper, or [ALL]: ");
+        String filter = sc.nextLine().toUpperCase().trim();
+
+        if (filter.isEmpty()) {
+            System.out.println(RED + "  Input Error: Filter cannot be empty. Enter A, B, C, or ALL." + RESET);
+            return;
+        }
+        if (!filter.equals("A") && !filter.equals("B") && !filter.equals("C") && !filter.equals("ALL")) {
+            System.out.println(RED + "  Input Error: \"" + filter + "\" is not valid. Enter A, B, C, or ALL." + RESET);
+            return;
+        }
+
+
+
+        System.out.println(CYAN + "\n      ╔══════════════════════════════════════╗");
+        System.out.println(       "      ║       [  ESPORTS ARENA STAGE  ]       ║");
+        System.out.println(       "      ╚══════════════════════════════════════╝" + RESET);
+
+
+
+        if (filter.equals("A"))   System.out.println(BOLD + "  [ ROW A — VIP SECTION ]"  + RESET);
+        if (filter.equals("B"))   System.out.println(BOLD + "  [ ROW B — LOWER BOX ]"    + RESET);
+        if (filter.equals("C"))   System.out.println(BOLD + "  [ ROW C — UPPER BOX ]"    + RESET);
+        if (filter.equals("ALL")) System.out.println(BOLD + "  [ FULL ARENA VIEW ]"       + RESET);
+
+        System.out.println();
+
+        List<SeatHierarchy> map = repo.getLiveInventory();
+
+
+
+        if (map == null || map.isEmpty()) {
+            System.out.println(ORANGE + "  No seat data available. Check database connection." + RESET);
+            return;
+        }
+
+
+
+        int count = 0;
+        for (SeatHierarchy s : map) {
+            try {
+                if (filter.equals("ALL") || s.getId().trim().startsWith(filter)) {
+                    String status = s.getStatus().trim();
+                    String color  = status.equalsIgnoreCase("Available") ? GREEN
+                                  : status.equalsIgnoreCase("Reserved")  ? ORANGE
+                                  : GRAY;
+                    System.out.print("  " + color + "[" + s.getId().trim() + "]" + RESET);
+                    count++;
+                    if (filter.equals("ALL") && count % 6 == 0) System.out.println();
+                }
+            } catch (Exception rowEx) {
+                System.err.println("  Warning: Skipped a seat render. " + rowEx.getMessage());
+            }
+        }
+     
+
+     
+        System.out.println("\n");
+        System.out.println("  Legend: "
+                + GREEN  + "■ Available"              + RESET + "  "
+                + ORANGE + "■ Reserved (15-min lock)" + RESET + "  "
+                + GRAY   + "■ Sold"                   + RESET);
+        System.out.println();
+
+    } catch (NoSuchElementException e) {
+        System.out.println(RED + "  Input Error: No input detected." + RESET);
+    } catch (Exception e) {
+        System.out.println(RED + "  Error loading map: " + e.getMessage() + RESET);
+    }
+}
+
     //Featured 1.1 HandleBooking
     //Feature 1.2 ->
+private static void handlePayment() {
+
+>>>>>>> origin/main
+    try {
+        List<SeatHierarchy> inventory = repo.getLiveInventory();
+
+        if (inventory == null) {
+            System.out.println(RED + "  Error: Could not retrieve seat inventory." + RESET);
+            return;
+        }
+
+<<<<<<< HEAD
+        // Enforce single active reservation
+=======
+        String reservedSeat = null;
+>>>>>>> origin/main
+        for (SeatHierarchy s : inventory) {
+            try {
+                if (s.getCustomerId() != null
+                        && s.getCustomerId().trim().equalsIgnoreCase(currentSessionUser)
+                        && s.getStatus().trim().equalsIgnoreCase("Reserved")) {
+<<<<<<< HEAD
+                    System.out.println(RED + "\n  Limit Reached: You already have a pending reservation for Seat "
+                            + s.getId().trim() + "." + RESET);
+                    System.out.println(ORANGE + "  Complete payment before booking another seat." + RESET);
+                    return;
+                }
+            } catch (Exception checkEx) {
+                System.err.println("  Warning: Error checking reservation. " + checkEx.getMessage());
+            }
+        }
+
+        renderMap();
+
+        System.out.print("  Enter Seat ID to Reserve (e.g., A1, B3): ");
+        String id = sc.nextLine().trim().toUpperCase();
+
+        if (id.isEmpty()) {
+            System.out.println(RED + "  Input Error: Seat ID cannot be empty." + RESET);
+            return;
+        }
+        if (!id.matches("[A-Z][0-9]+")) {
+            System.out.println(RED + "  Input Error: \"" + id + "\" is not valid. Use format like A1, B2, C3." + RESET);
+            return;
+        }
+
+        if (repo.bookSeat(id, currentSessionUser)) {
+            System.out.println(GREEN + "\n  ✔ Success: Seat " + id + " reserved for 15 minutes." + RESET);
+            System.out.println(ORANGE + "  ⚠ Complete payment within 15 mins or the seat will be released." + RESET);
+        } else {
+            System.out.println(RED + "\n   Error: Seat " + id + " is taken, invalid, or already sold." + RESET);
+=======
+                    reservedSeat = s.getId().trim();
+                    break;
+                }
+            } catch (Exception checkEx) {
+                System.err.println("  Warning: Error scanning reservations. " + checkEx.getMessage());
+            }
+        }
+
+        if (reservedSeat == null) {
+            System.out.println(ORANGE + "\n  No active reservation found for " + currentSessionName + "." + RESET);
+            System.out.println("  Reserve a seat first using option [2].");
+            return;
+        }
+
+        System.out.println(CYAN + "\n  Your reserved seat: " + BOLD + reservedSeat + RESET);
+        System.out.print("  Confirm payment for Seat " + reservedSeat + "? [Y/N]: ");
+        String confirm = sc.nextLine().trim().toUpperCase();
+
+        if (confirm.isEmpty()) {
+            System.out.println(RED + "  Input Error: Please enter Y or N." + RESET);
+            return;
+        }
+        if (!confirm.equals("Y") && !confirm.equals("N")) {
+            System.out.println(RED + "  Input Error: \"" + confirm + "\" is not valid. Enter Y or N." + RESET);
+            return;
+        }
+        if (confirm.equals("N")) {
+            System.out.println(ORANGE + "  Payment cancelled." + RESET);
+            return;
+        }
+
+        if (repo.processPayment(reservedSeat, currentSessionUser)) {
+            System.out.println(GREEN + "\n  ✔ Payment confirmed! Receipt generated." + RESET);
+        } else {
+            System.out.println(RED + "\n  ✘ Payment failed. Reservation may have expired." + RESET);
+>>>>>>> origin/main
+        }
+
+    } catch (NoSuchElementException e) {
+        System.out.println(RED + "  Input Error: No input detected." + RESET);
+    } catch (Exception e) {
+<<<<<<< HEAD
+        System.out.println(RED + "  Error during booking: " + e.getMessage() + RESET);
+    }
+}
+
+
+    private static void showDashboard() {
+    try {
+        System.out.println(CYAN + "\n  ╔══════════════════════════════════════╗");
+        System.out.println(       "  ║        MY TICKETS DASHBOARD          ║");
+        System.out.println(       "  ╠══════════════════════════════════════╣" + RESET);
+        System.out.println("  Name  : " + BOLD + currentSessionName + RESET);
+        System.out.println("  UserID: " + currentSessionUser);
+        System.out.println(CYAN + "  ──────────────────────────────────────" + RESET);
+
+        List<SeatHierarchy> allSeats = repo.getLiveInventory();
+
+        if (allSeats == null || allSeats.isEmpty()) {
+            System.out.println("  No seat data available.");
+            System.out.println(CYAN + "  ╚══════════════════════════════════════╝" + RESET);
+            return;
+        }
+
+        boolean found          = false;
+        double  totalPaid      = 0;
+        int     confirmedCount = 0;
+        int     pendingCount   = 0;
+
+        for (SeatHierarchy s : allSeats) {
+            try {
+                if (s.getCustomerId() != null
+                        && s.getCustomerId().trim().equalsIgnoreCase(currentSessionUser)) {
+
+                    String status = s.getStatus().trim();
+                    String type   = (s instanceof VIPSeat) ? "[VIP]" : "[Regular]";
+
+                    if (status.equalsIgnoreCase("Reserved")) {
+                        System.out.println("  Seat " + BOLD + s.getId() + RESET
+                                + "  " + CYAN + type + RESET
+                                + "  Status: " + ORANGE + "PENDING" + RESET);
+                        pendingCount++;
+                    } else if (status.equalsIgnoreCase("Sold")) {
+                        System.out.println("  Seat " + BOLD + s.getId() + RESET
+                                + "  " + CYAN + type + RESET
+                                + "  Status: " + GREEN + "CONFIRMED" + RESET
+                                + "  Price: P" + s.getPrice());
+                        totalPaid += s.getPrice();
+                        confirmedCount++;
+                    }
+                    found = true;
+                }
+            } catch (Exception rowEx) {
+                System.err.println("  Warning: Error displaying a ticket row. " + rowEx.getMessage());
+
+            System.err.println("  Unexpected Booking Error: " + e.getMessage());
+        return false;
+=======
+        System.out.println(RED + "  Error during payment: " + e.getMessage() + RESET);
+>>>>>>> origin/main
+    }
+}
+
+
+
+
+<<<<<<< HEAD
+=======
+
+
     //Featured 1.3 DB
+>>>>>>> origin/main
 
     private static void filterTickets() {
         try {
@@ -335,3 +733,6 @@ public class Main {
         }
     }
 }
+
+
+
