@@ -4,6 +4,7 @@ public class RealTimeRepository {
  
     
     
+    
     private final String url =
         "jdbc:sqlserver://LAPTOP-I6GCH1M5:1433;databaseName=M4ESPORTSTICKETING;" +
         "integratedSecurity=true;encrypt=true;trustServerCertificate=true;";
@@ -96,7 +97,61 @@ public class RealTimeRepository {
     //Featured 2.2
 
     //Featured 1.1 Bookeat
-    //Featured 1.2 Proc payment kurt
+    public boolean processPayment(String seatId, String custId) {
+    if (seatId == null || seatId.trim().isEmpty()) {
+        System.out.println("  Payment Error: Seat ID cannot be empty.");
+        return false;
+    }
+    if (custId == null || custId.trim().isEmpty()) {
+        System.out.println("  Payment Error: Customer ID cannot be empty.");
+        return false;
+    }
+
+    double price = 0;
+    String tier  = "Regular";
+
+    try {
+        List<SeatHierarchy> current = getLiveInventory();
+        for (SeatHierarchy s : current) {
+            if (s.getId().trim().equalsIgnoreCase(seatId.trim())) {
+                price = s.getPrice();
+                tier  = (s instanceof VIPSeat) ? "VIP" : "Regular";
+                break;
+            }
+        }
+    } catch (Exception e) {
+        System.err.println("  Warning: Could not fetch seat details before payment. " + e.getMessage());
+    }
+
+    String sql =
+        "UPDATE Seats SET Status = 'Sold', LockTimestamp = NULL " +
+        "WHERE TRIM(SeatID) = ? AND TRIM(CustomerID) = ? AND TRIM(Status) = 'Reserved'";
+
+    try (Connection conn = DriverManager.getConnection(url);
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+        pstmt.setString(1, seatId.trim());
+        pstmt.setString(2, custId.trim());
+
+        boolean success = pstmt.executeUpdate() > 0;
+        if (success) {
+            printReceiptToConsole(seatId, price, tier, custId);
+        }
+        return success;
+
+    } catch (SQLTimeoutException e) {
+        System.err.println("  Payment Timeout: Database took too long to respond.");
+        return false;
+    } catch (SQLException e) {
+        System.err.println("  Payment SQL Error: " + e.getMessage());
+        return false;
+    } catch (Exception e) {
+        System.err.println("  Unexpected Payment Error: " + e.getMessage());
+        return false;
+    }
+}
+
+
 
     private void printReceiptToConsole(String seat, double price, String tier, String user) {
         try {
