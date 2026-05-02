@@ -94,6 +94,7 @@ public class RealTimeRepository {
     }
 
 
+    
     public List<SeatHierarchy> getLiveInventory() {
     List<SeatHierarchy> seats = new ArrayList<>();
 
