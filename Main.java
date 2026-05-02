@@ -38,7 +38,7 @@ public class Main {
                     System.out.println(RED + "  Input Error: \"" + rawInput + "\" is not valid. Enter a number 1-6." + RESET);
                     continue;
                 }
-
+ 
                 switch (choice) {
                     case 1: renderMap();      break;
                     case 2: handleBooking();  break;
