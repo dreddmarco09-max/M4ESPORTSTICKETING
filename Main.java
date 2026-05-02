@@ -62,8 +62,14 @@ public class Main {
     }
 
     private static void customerLoginFlow() {
+
+
         while (currentSessionUser == null) {
+
+
             try {
+
+
                 System.out.println(CYAN + "\n  ╔══════════════════════════════════════╗");
                 System.out.println(       "  ║         CUSTOMER CHECK-IN            ║");
                 System.out.println(       "  ╚══════════════════════════════════════╝" + RESET);
@@ -95,18 +101,28 @@ public class Main {
                 }
 
             } catch (NoSuchElementException e) {
+
+
                 System.out.println(RED + "  Input Error: No input detected." + RESET);
+
+
             } catch (Exception e) {
+
+
                 System.out.println(RED + "  Unexpected Error during login: " + e.getMessage() + RESET);
             }
         }
     }
 
     private static void returningCustomerLogin() {
+
+
         try {
             System.out.println(CYAN + "\n  [ Returning Customer Login ]" + RESET);
             System.out.print("  Enter your ID Number: ");
             String idNumber = sc.nextLine().trim();
+
+
 
             if (idNumber.isEmpty()) {
                 System.out.println(RED + "  Input Error: ID Number cannot be empty." + RESET);
@@ -114,6 +130,7 @@ public class Main {
             }
 
             String customerId = repo.findCustomerByIDNumber(idNumber);
+
 
             if (customerId == null) {
                 System.out.println(ORANGE + "  No account found with ID Number: " + idNumber + RESET);
@@ -135,6 +152,8 @@ public class Main {
         }
     }
 
+
+
     private static void newCustomerRegister() {
         try {
             System.out.println(CYAN + "\n  [ New Customer Registration ]" + RESET);
@@ -147,6 +166,7 @@ public class Main {
                 return;
             }
 
+
             if (!fullName.matches("[a-zA-Z]+(\\s+[a-zA-Z]+)+")) {
                 System.out.println(RED + "  Input Error: \"" + fullName + "\" is not valid. Enter your full name (letters only, e.g. Marco Dredd)." + RESET);
                 return;
@@ -155,15 +175,18 @@ public class Main {
             System.out.print("  Enter your ID Number (e.g. 2023-00123): ");
             String idNumber = sc.nextLine().trim();
 
+
             if (idNumber.isEmpty()) {
                 System.out.println(RED + "  Input Error: ID Number cannot be empty." + RESET);
                 return;
             }
 
+
             if (!idNumber.matches("[a-zA-Z0-9\\-]+")) {
                 System.out.println(RED + "  Input Error: \"" + idNumber + "\" is not valid. Use letters, numbers, and dashes only." + RESET);
                 return;
             }
+
 
             System.out.println(CYAN + "\n  ─── Confirm Registration ───────────────" + RESET);
             System.out.println("  Full Name  : " + fullName);
@@ -183,6 +206,7 @@ public class Main {
 
             String customerId = repo.registerCustomer(fullName, idNumber);
 
+
             if (customerId != null) {
                 currentSessionUser = customerId;
                 currentSessionName = fullName;
@@ -193,6 +217,7 @@ public class Main {
                 System.out.println(RED + "  Registration failed. Please try again or use a different ID Number." + RESET);
             }
 
+
         } catch (NoSuchElementException e) {
             System.out.println(RED + "  Input Error: No input detected." + RESET);
         } catch (Exception e) {
@@ -200,7 +225,10 @@ public class Main {
         }
     }
 
+
     private static String formatNameFromId(String customerId) {
+
+
         try {
             String[] parts = customerId.split("-");
             if (parts.length < 2) return customerId;
@@ -213,6 +241,8 @@ public class Main {
     }
 
     private static void printBanner() {
+  
+  
         try {
             System.out.println(CYAN + BOLD);
             System.out.println("  ███████╗███████╗██████╗  ██████╗ ██████╗ ████████╗███████╗");
@@ -229,6 +259,8 @@ public class Main {
     }
 
     private static void printMenu() {
+  
+  
         try {
             System.out.println(CYAN + "\n  ╔══════════════════════════════════════╗");
             System.out.println(       "  ║       ESPORTS TICKETING SYSTEM       ║");
@@ -243,13 +275,21 @@ public class Main {
             System.out.println("  [6] " + RED    + "Exit"                  + RESET);
             System.out.println(CYAN + "  ╚══════════════════════════════════════╝" + RESET);
             System.out.print("  Action: ");
+  
+  
         } catch (Exception e) {
             System.out.print("\nChoose [1-6]: ");
         }
     }
 
+
     //Featured 2.1 rendermap
+
+
+
     private static void renderMap() {
+  
+  
     try {
         System.out.print("\n  View [A] VIP, [B] Lower, [C] Upper, or [ALL]: ");
         String filter = sc.nextLine().toUpperCase().trim();
@@ -263,9 +303,13 @@ public class Main {
             return;
         }
 
+
+
         System.out.println(CYAN + "\n      ╔══════════════════════════════════════╗");
         System.out.println(       "      ║       [  ESPORTS ARENA STAGE  ]       ║");
         System.out.println(       "      ╚══════════════════════════════════════╝" + RESET);
+
+
 
         if (filter.equals("A"))   System.out.println(BOLD + "  [ ROW A — VIP SECTION ]"  + RESET);
         if (filter.equals("B"))   System.out.println(BOLD + "  [ ROW B — LOWER BOX ]"    + RESET);
@@ -276,10 +320,14 @@ public class Main {
 
         List<SeatHierarchy> map = repo.getLiveInventory();
 
+
+
         if (map == null || map.isEmpty()) {
             System.out.println(ORANGE + "  No seat data available. Check database connection." + RESET);
             return;
         }
+
+
 
         int count = 0;
         for (SeatHierarchy s : map) {
@@ -297,7 +345,9 @@ public class Main {
                 System.err.println("  Warning: Skipped a seat render. " + rowEx.getMessage());
             }
         }
+     
 
+     
         System.out.println("\n");
         System.out.println("  Legend: "
                 + GREEN  + "■ Available"              + RESET + "  "
